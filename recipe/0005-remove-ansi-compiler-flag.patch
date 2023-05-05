@@ -1,0 +1,27 @@
+From 5d5ae705556183cb30c8763aba3758573321140f Mon Sep 17 00:00:00 2001
+From: Yu-Ren Zhang <e8035669@gmail.com>
+Date: Tue, 2 May 2023 07:03:23 +0800
+Subject: [PATCH] remove -ansi compiler flag
+
+---
+ examples/c/CMakeLists.txt | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/examples/c/CMakeLists.txt b/examples/c/CMakeLists.txt
+index 625f5948..949dffb2 100644
+--- a/examples/c/CMakeLists.txt
++++ b/examples/c/CMakeLists.txt
+@@ -34,10 +34,6 @@ foreach(example ${LIEF_C_EXAMPLES})
+     $<TARGET_PROPERTY:LIB_LIEF,INCLUDE_DIRECTORIES>)
+ 
+   set(LIEF_EXAMPLES_C_FLAGS)
+-  CHECK_C_COMPILER_FLAG("-ansi" HAS_ANSI)
+-  if (HAS_ANSI)
+-    set(LIEF_EXAMPLES_C_FLAGS ${LIEF_EXAMPLES_C_FLAGS} -ansi)
+-  endif()
+ 
+   set_property(TARGET "${output_target}" PROPERTY C_STANDARD          99)
+   set_property(TARGET "${output_target}" PROPERTY C_STANDARD_REQUIRED ON)
+-- 
+2.20.1
+
