@@ -1,0 +1,106 @@
+From 2ed0109774645f5af0f6c4ddc8bcaa308ba1da42 Mon Sep 17 00:00:00 2001
+From: Yu-Ren Zhang <e8035669@gmail.com>
+Date: Sun, 21 Jul 2024 07:56:02 +0800
+Subject: [PATCH] try fix mbedtls assembly bug
+
+---
+ cmake/LIEFDependencies.cmake                  |  1 +
+ ...367b5035ab120095c325b48fdf90b04a5081.patch | 74 +++++++++++++++++++
+ 2 files changed, 75 insertions(+)
+ create mode 100644 third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch
+
+diff --git a/cmake/LIEFDependencies.cmake b/cmake/LIEFDependencies.cmake
+index 38220944..4981e5f7 100644
+--- a/cmake/LIEFDependencies.cmake
++++ b/cmake/LIEFDependencies.cmake
+@@ -40,6 +40,7 @@ if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
+   set(SOURCE_DIR mbed_src)
+   set(MBEDTLS_SOURCE_DIR "${SOURCE_DIR}")
+   set(MBEDTLS_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/library")
++  set(MBEDTLS_PATCH_COMMAND "patch --verbose -Np1 -d ${MBEDTLS_SOURCE_DIR} ${THIRD_PARTY_DIRECTORY}/907a367b5035ab120095c325b48fdf90b04a5081.patch")
+ 
+   set(mbedtls_src_crypto
+     "${MBEDTLS_SOURCE_DIR}/library/aes.c"
+diff --git a/third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch b/third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch
+new file mode 100644
+index 00000000..6ca894db
+--- /dev/null
++++ b/third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch
+@@ -0,0 +1,74 @@
++From 907a367b5035ab120095c325b48fdf90b04a5081 Mon Sep 17 00:00:00 2001
++From: Hanno Becker <hanno.becker@arm.com>
++Date: Fri, 15 Jul 2022 12:00:58 +0100
++Subject: [PATCH] Remove explicit width suffixes from Arm bignum assembly
++
++Within the M-profile of the Arm architecture, some instructions
++admit both a 16-bit and a 32-bit encoding. For those instructions,
++some assemblers support the use of the .n (narrow) and .w (wide)
++suffixes to force a choice of instruction encoding width.
++Forcing the size of encodings may be useful to ensure alignment
++of code, which can have a significant performance impact on some
++microarchitectures.
++
++It is for this reason that a previous commit introduced explicit
++.w suffixes into what was believed to be M-profile only assembly
++in library/bn_mul.h.
++
++This change, however, introduced two issues:
++- First, the assembly block in question is used also for Armv7-A
++  systems, on which the .n/.w distinction is not meaningful
++  (all instructions are 32-bit).
++- Second, compiler support for .n/.w suffixes appears patchy,
++  leading to compilation failures even when building for M-profile
++  targets.
++
++This commit removes the .w annotations in order to restore working
++code, deferring controlled re-introduction for the sake of performance.
++
++Fixes #6089.
++
++Signed-off-by: Hanno Becker <hanno.becker@arm.com>
++---
++ library/bn_mul.h | 18 +++++++++---------
++ 1 file changed, 9 insertions(+), 9 deletions(-)
++
++diff --git a/library/bn_mul.h b/library/bn_mul.h
++index 962d7a97b318..20e0e53dc094 100644
++--- a/library/bn_mul.h
+++++ b/library/bn_mul.h
++@@ -717,10 +717,10 @@
++ 
++ #define MULADDC_X1_CORE                                         \
++            ".p2align  2                                 \n\t"   \
++-            "ldr.w    %[a], [%[in]], #4                 \n\t"   \
++-            "ldr.w    %[b], [%[acc]]                    \n\t"   \
+++            "ldr      %[a], [%[in]], #4                 \n\t"   \
+++            "ldr      %[b], [%[acc]]                    \n\t"   \
++             "umaal    %[b], %[carry], %[scalar], %[a]   \n\t"   \
++-            "str.w    %[b], [%[acc]], #4                \n\t"
+++            "str      %[b], [%[acc]], #4                \n\t"
++ 
++ #define MULADDC_X1_STOP                                      \
++             : [a]      "=&r" (tmp_a),                        \
++@@ -751,14 +751,14 @@
++              *   2 cycles, while subsequent loads/stores are single-cycle. */
++ #define MULADDC_X2_CORE                                           \
++            ".p2align  2                                   \n\t"   \
++-            "ldr.w    %[a0], [%[in]],  #+8                \n\t"   \
++-            "ldr.w    %[b0], [%[acc]], #+8                \n\t"   \
++-            "ldr.w    %[a1], [%[in],  #-4]                \n\t"   \
++-            "ldr.w    %[b1], [%[acc], #-4]                \n\t"   \
+++            "ldr      %[a0], [%[in]],  #+8                \n\t"   \
+++            "ldr      %[b0], [%[acc]], #+8                \n\t"   \
+++            "ldr      %[a1], [%[in],  #-4]                \n\t"   \
+++            "ldr      %[b1], [%[acc], #-4]                \n\t"   \
++             "umaal    %[b0], %[carry], %[scalar], %[a0]   \n\t"   \
++             "umaal    %[b1], %[carry], %[scalar], %[a1]   \n\t"   \
++-            "str.w    %[b0], [%[acc], #-8]                \n\t"   \
++-            "str.w    %[b1], [%[acc], #-4]                \n\t"
+++            "str      %[b0], [%[acc], #-8]                \n\t"   \
+++            "str      %[b1], [%[acc], #-4]                \n\t"
++ 
++ #define MULADDC_X2_STOP                                      \
++             : [a0]     "=&r" (tmp_a0),                       \
+-- 
+2.20.1
+

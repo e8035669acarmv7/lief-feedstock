@@ -16,6 +16,8 @@ source:
       # linking in the future and link libLIEF statically for py-lief, too.
       - 0002-Dynamically-link-Python-library-to-libLIEF.patch
       - 0003-Export-symbols-used-by-Python-library-from-libLIEF.patch
+      # https://github.com/Mbed-TLS/mbedtls/pull/6090
+      - 0001-try-fix-mbedtls-assembly-bug.patch
 
 build:
   number: 1
