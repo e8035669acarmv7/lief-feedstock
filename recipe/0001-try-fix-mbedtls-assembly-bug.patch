@@ -1,26 +1,34 @@
-From 2ed0109774645f5af0f6c4ddc8bcaa308ba1da42 Mon Sep 17 00:00:00 2001
+From eacef80d27342e66dc690266cee2ddecdc4964d3 Mon Sep 17 00:00:00 2001
 From: Yu-Ren Zhang <e8035669@gmail.com>
 Date: Sun, 21 Jul 2024 07:56:02 +0800
 Subject: [PATCH] try fix mbedtls assembly bug
 
 ---
- cmake/LIEFDependencies.cmake                  |  1 +
+ cmake/LIEFDependencies.cmake                  |  2 +
  ...367b5035ab120095c325b48fdf90b04a5081.patch | 74 +++++++++++++++++++
- 2 files changed, 75 insertions(+)
+ 2 files changed, 76 insertions(+)
  create mode 100644 third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch
 
 diff --git a/cmake/LIEFDependencies.cmake b/cmake/LIEFDependencies.cmake
-index 38220944..4981e5f7 100644
+index 38220944..8e3b17ec 100644
 --- a/cmake/LIEFDependencies.cmake
 +++ b/cmake/LIEFDependencies.cmake
 @@ -40,6 +40,7 @@ if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
    set(SOURCE_DIR mbed_src)
    set(MBEDTLS_SOURCE_DIR "${SOURCE_DIR}")
    set(MBEDTLS_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR}/library")
-+  set(MBEDTLS_PATCH_COMMAND "patch --verbose -Np1 -d ${MBEDTLS_SOURCE_DIR} ${THIRD_PARTY_DIRECTORY}/907a367b5035ab120095c325b48fdf90b04a5081.patch")
++  set(MBEDTLS_PATCH_COMMAND patch --verbose -Np1 -d ${CMAKE_CURRENT_BINARY_DIR}/${SOURCE_DIR} -i ${THIRD_PARTY_DIRECTORY}/907a367b5035ab120095c325b48fdf90b04a5081.patch)
  
    set(mbedtls_src_crypto
      "${MBEDTLS_SOURCE_DIR}/library/aes.c"
+@@ -154,6 +155,7 @@ if(NOT LIEF_OPT_MBEDTLS_EXTERNAL)
+     URL               ${MBED_TLS_URL}
+     URL_HASH          ${MBED_TLS_SHA256}
+     UPDATE_COMMAND    "" # repetitive update are a pain
++    PATCH_COMMAND     ${MBEDTLS_PATCH_COMMAND}
+     BUILD_BYPRODUCTS  ${mbedtls_src_crypto} ${mbedtls_src_x509} ${mbedtls_src_tls})
+ 
+ endif()
 diff --git a/third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch b/third-party/907a367b5035ab120095c325b48fdf90b04a5081.patch
 new file mode 100644
 index 00000000..6ca894db
